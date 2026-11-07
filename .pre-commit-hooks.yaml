@@ -1,0 +1,17 @@
+- id: rumdl-config-comments
+  name: rumdl config comments
+  description: Annotate rumdl.toml rule lists with aliases and rule descriptions
+  entry: rumdl-config-comments
+  language: python
+  additional_dependencies: [rumdl]
+  files: (^|/)(\.?rumdl\.toml|\.config/rumdl\.toml)$
+  types: [toml]
+
+- id: ruff-config-comments
+  name: ruff config comments
+  description: Annotate ruff rule selectors with rule names and descriptions
+  entry: ruff-config-comments
+  language: python
+  additional_dependencies: [ruff]
+  files: (^|/)(\.?ruff\.toml|\.config/ruff\.toml|pyproject\.toml)$
+  types: [toml]

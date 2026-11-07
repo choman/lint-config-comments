@@ -1,0 +1,19 @@
+[project]
+name = "lint-config-comments"
+version = "0.1.0"
+description = "Annotate rumdl and ruff configs with rule names and descriptions"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["tomlkit>=0.11.5"]
+
+[project.optional-dependencies]
+rumdl = ["rumdl"]
+ruff = ["ruff"]
+
+[project.scripts]
+rumdl-config-comments = "lint_config_comments.rumdl:main"
+ruff-config-comments = "lint_config_comments.ruff:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
