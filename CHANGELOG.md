@@ -11,13 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- README TOC
-- CHANGELOG template
+- cz test
 
 ## v0.2.0 (2026-11-08)
 
 ### Added
 
+- README TOC
+- CHANGELOG template
 - add bump-my-version
 - keep directory
 
@@ -33,3 +34,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - formatting rules
 
 ## v0.1.0 (2026-11-07)
+
+- initial
