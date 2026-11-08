@@ -28,4 +28,16 @@ scripts.ruff-config-comments = "lint_config_comments.ruff:main"
 scripts.rumdl-config-comments = "lint_config_comments.rumdl:main"
 
 [tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "uv"
+version_files = [
+    "src/lint_config_comments/__init__.py:__version__",
+    "VERSION.yml:version",
+]
+bump_message = "bump: version $current_version → $new_version"
+major_version_zero = true
+tag_format = "v$version"
+annotated_tag = true
+changelog_incremental = true
+update_changelog_on_bump = true
 change_type_map = { feat = "Added", fix = "Fixed", refactor = "Changed", perf = "Changed" }
