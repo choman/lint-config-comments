@@ -1,5 +1,8 @@
 toml-version = "v1.0.0"
 
+[files]
+exclude = ["uv.lock"]
+
 [format]
 [format.rules]
 array-bracket-space-width = 0

@@ -6,7 +6,6 @@ so results don't change with tool versions and nothing needs the network.
 """
 
 import json
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -151,8 +150,12 @@ def fake_tools(request, monkeypatch):
 
 @pytest.fixture
 def repo(tmp_path, monkeypatch) -> Path:
-    """An empty git repo as the working directory."""
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    """An empty repo as the working directory.
+
+    The hooks only look for a .git directory to find the repo root, so an
+    empty one is enough (and git needn't be installed, e.g. in slim CI images).
+    """
+    (tmp_path / ".git").mkdir()
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
