@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "lint-config-comments"
-version = "0.2.0"
+version = "0.3.0"
 description = "Annotate rumdl and ruff configs with rule names and descriptions"
 readme = "README.md"
 requires-python = ">=3.12"
