@@ -1,61 +1,86 @@
-# .gitlab-ci.yml — CI pipeline for ssh-keyaudit
+# .gitlab-ci.yml — lint-config-comments
 #
-# Stages:
-#   lint   — static shell checks (shellcheck)
-#   test   — bats test suites
+# Merge request / push to main:   lint
+# Push to main (not a bump):      bump   -> cz bump, commit + tag pushed back
+# Tag vX.Y.Z (from bump):         release (GitLab release with CHANGELOG notes)
 #
-# Requires no external services. Runs on any Linux runner.
+# Setup (once):
+#   1. Settings > Access tokens: project access token, role Maintainer,
+#      scope write_repository.
+#   2. Settings > CI/CD > Variables: RELEASE_TOKEN = that token
+#      (masked, protected).
+#   3. Settings > Repository > Protected tags: protect "v*" for Maintainers.
 
 stages:
   - lint
-  - test
+  - release
+
+variables:
+  UV_LINK_MODE: copy
+  UV_PYTHON: python3 # use the image's Python, not the exact .python-version pin
+  COMMITIZEN: commitizen==4.19.3
 
 default:
-  image: ubuntu:24.04
-  before_script:
-    - apt-get update -qq
-    - apt-get install -y -qq shellcheck bats
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 # ─── Lint ─────────────────────────────────────────────────────────────────────
 
-shellcheck:
+lint:
   stage: lint
   script:
-    - shellcheck ssh-keyaudit.sh
-    - shellcheck install.sh
-    - shellcheck completions/ssh-keyaudit.bash
+    - uvx ruff check src
+    - uvx ruff format --check src
+    # smoke test: both hooks run cleanly against this repo's own configs
+    - uv run --frozen ruff-config-comments --formatter none -n .ruff.toml > /dev/null
+    - uv run --frozen rumdl-config-comments --formatter none -n .config/rumdl.toml > /dev/null
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# ─── Test ─────────────────────────────────────────────────────────────────────
+# ─── Release ──────────────────────────────────────────────────────────────────
 
-test:audit:
-  stage: test
+# Bump the version from the Conventional Commits since the last tag, update
+# CHANGELOG.md, commit and tag. Pushed with RELEASE_TOKEN: pushes made with
+# CI_JOB_TOKEN don't start pipelines, so the tag pipeline below would never run.
+bump:
+  stage: release
+  resource_group: release # one release at a time
+  variables:
+    GIT_DEPTH: 0 # cz needs the full history and tags
+    GIT_STRATEGY: clone
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git > /dev/null
   script:
-    - bats --tap tests/bats/ssh-keyaudit.bats
-  artifacts:
-    when: always
-    reports:
-      junit: tap-audit.xml
-    expire_in: 7 days
-  after_script:
-    - bats --tap tests/bats/ssh-keyaudit.bats 2>/dev/null | tap-to-junit > tap-audit.xml || true
+    - git config user.name "${GITLAB_USER_NAME}"
+    - git config user.email "${GITLAB_USER_EMAIL}"
+    - git remote set-url origin "https://oauth2:${RELEASE_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+    - git checkout -B "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA"
+    - |
+      rc=0
+      uvx --from "$COMMITIZEN" cz bump --yes || rc=$?
+      if [ "$rc" -eq 21 ]; then
+        echo "No release-worthy commits (feat/fix/perf/breaking) since the last tag."
+        exit 0
+      fi
+      [ "$rc" -eq 0 ] || exit "$rc"
+    - git push --atomic origin "HEAD:${CI_COMMIT_BRANCH}" "refs/tags/$(git describe --tags --abbrev=0)"
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # skip the pipeline started by the bump commit itself
+    - if: $CI_COMMIT_MESSAGE =~ /^bump:/
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
 
-test:install:
-  stage: test
+# GitLab release for the tag. Notes = the tag's section of CHANGELOG.md,
+# which the bump job just wrote.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/cli:latest
   script:
-    - bats --tap tests/bats/install.bats
-  artifacts:
-    when: always
-    reports:
-      junit: tap-install.xml
-    expire_in: 7 days
-  after_script:
-    - bats --tap tests/bats/install.bats 2>/dev/null | tap-to-junit > tap-install.xml || true
+    - awk -v tag="$CI_COMMIT_TAG" '$1 == "##" && $2 == tag {f=1; next} $1 == "##" {f=0} f' CHANGELOG.md > notes.md
+    - cat notes.md
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: $CI_COMMIT_TAG
+    description: ./notes.md
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
