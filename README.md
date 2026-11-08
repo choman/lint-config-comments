@@ -9,6 +9,8 @@ de-duplicated and their comments aligned.
 | `rumdl-config-comments` | `.rumdl.toml`, `rumdl.toml`, `.config/rumdl.toml`                                |
 | `ruff-config-comments`  | `.ruff.toml`, `ruff.toml`, `.config/ruff.toml`, `pyproject.toml` (`[tool.ruff]`) |
 
+[[_TOC_]]
+
 ## Usage
 
 ```yaml
