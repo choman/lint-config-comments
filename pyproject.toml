@@ -26,6 +26,22 @@ optional-dependencies.rumdl = [ "rumdl" ]
 scripts.ruff-config-comments = "lint_config_comments.ruff:main"
 scripts.rumdl-config-comments = "lint_config_comments.rumdl:main"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.2",
+    "ruff>=0.17.4",
+    "rumdl>=0.3.2",
+    "tombi>=1.11",
+    "toml-sort>=0.25",
+]
+
+[tool.pytest]
+ini_options.testpaths = [ "tests" ]
+ini_options.addopts = "-ra"
+ini_options.markers = [
+    "integration: runs the real rumdl/ruff/tombi/toml-sort (skipped if not installed)",
+]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 version_provider = "uv"
