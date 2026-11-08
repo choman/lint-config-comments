@@ -104,7 +104,8 @@ release:
   stage: release
   image: registry.gitlab.com/gitlab-org/cli:latest
   script:
-    - awk -v tag="$CI_COMMIT_TAG" '$1 == "##" && $2 == tag {f=1; next} $1 == "##" {f=0} f' CHANGELOG.md > notes.md
+    # headings look like "## [v1.2.3](release url) (date)" or "## v1.2.3 (date)"
+    - awk -v tag="$CI_COMMIT_TAG" '$1 == "##" { f = ($2 == tag || index($2, "[" tag "]") == 1); next } f' CHANGELOG.md > notes.md
     - cat notes.md
   release:
     tag_name: $CI_COMMIT_TAG

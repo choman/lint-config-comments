@@ -40,4 +40,6 @@ tag_format = "v$version"
 annotated_tag = true
 changelog_incremental = true
 update_changelog_on_bump = true
+extras = { release_url = "https://gitlab.com/choman/lint-config-comments/-/releases" }
+template = ".gitlab/templates/CHANGELOG.md.j2"  # adds release links, drops repeated entries, keeps "Unreleased" on top
 change_type_map = { feat = "Added", fix = "Fixed", refactor = "Changed", perf = "Changed" }

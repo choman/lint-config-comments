@@ -1,0 +1,37 @@
+{#- commitizen's default markdown template, plus:
+    - version headings link to the GitLab release (extras.release_url)
+    - repeated entries in a section are listed once
+    - an "Unreleased" heading always stays at the top -#}
+{% set releases = tree | list %}
+{% if not releases or releases[0].version != "Unreleased" %}
+
+## Unreleased
+{% endif %}
+{% for entry in releases %}
+
+{% if entry.version and entry.version != "Unreleased" and release_url is defined %}
+## [{{ entry.version }}]({{ release_url }}/{{ entry.version }}){% if entry.date %} ({{ entry.date }}){% endif %}
+{% else %}
+## {{ entry.version }}{% if entry.date %} ({{ entry.date }}){% endif %}
+{% endif %}
+
+{% for change_key, changes in entry.changes.items() %}
+
+{% if change_key %}
+### {{ change_key }}
+{% endif %}
+
+{% set seen = [] %}
+{% for change in changes %}
+{% set key = (change.scope or "") ~ "|" ~ change.message %}
+{% if change.message and key not in seen %}
+{% set _ = seen.append(key) %}
+{% if change.scope %}
+- **{{ change.scope }}**: {{ change.message }}
+{% else %}
+- {{ change.message }}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endfor %}
