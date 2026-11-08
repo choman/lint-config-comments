@@ -29,6 +29,7 @@ scripts.rumdl-config-comments = "lint_config_comments.rumdl:main"
 [dependency-groups]
 dev = [
     "pytest>=9.2",
+    "pytest-cov>=7.1",
     "ruff>=0.17.4",
     "rumdl>=0.3.2",
     "tombi>=1.11",
