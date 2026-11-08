@@ -1,0 +1,10 @@
+---
+version: "3"
+
+tasks:
+  python:all:
+    desc: run all tests
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uvx run pytest
