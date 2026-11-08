@@ -132,20 +132,15 @@ def detect_toml_sort(config: Path) -> dict | None:
 TOMBI_CONFIGS = [".tombi.toml", "tombi.toml", ".config/tombi.toml"]
 
 
-def _tombi_files(root: Path) -> dict:
-    """The [files] section of tombi's config, found the way tombi finds it."""
+def _tombi_config(root: Path) -> dict:
+    """tombi's config, found the way tombi finds it."""
     for name in TOMBI_CONFIGS:
         p = root / name
         if p.is_file():
-            return dict(tomlkit.parse(p.read_text()).get("files", {}))
+            return tomlkit.parse(p.read_text()).unwrap()
     py = root / "pyproject.toml"
     if py.is_file():
-        return dict(
-            tomlkit.parse(py.read_text())
-            .get("tool", {})
-            .get("tombi", {})
-            .get("files", {})
-        )
+        return tomlkit.parse(py.read_text()).unwrap().get("tool", {}).get("tombi", {})
     return {}
 
 
@@ -158,19 +153,35 @@ def _glob(rel: str, pattern: str) -> bool:
     )
 
 
+def _in_scope(rel: str, files: dict, default_include: list[str]) -> bool:
+    include = files.get("include", default_include)
+    exclude = files.get("exclude", [])
+    return any(_glob(rel, p) for p in include) and not any(
+        _glob(rel, p) for p in exclude
+    )
+
+
 def tombi_formats(config: Path) -> bool:
-    """True if a tombi-format hook runs on this file and tombi's config doesn't exclude it."""
+    """True if a tombi-format hook formats this file.
+
+    Honors tombi's [files] include/exclude and [[overrides]] with
+    format.enabled = false (tombi applies neither to stdin input).
+    """
     found = find_hook(config, TOMBI_HOOKS)
     if not found:
         return False
     root, _ = found
     rel = config.resolve().relative_to(root).as_posix()
-    files = _tombi_files(root)
-    include = files.get("include", ["**/*.toml"])
-    exclude = files.get("exclude", [])
-    return any(_glob(rel, p) for p in include) and not any(
-        _glob(rel, p) for p in exclude
-    )
+    cfg = _tombi_config(root)
+    if not _in_scope(rel, cfg.get("files", {}), ["**/*.toml"]):
+        return False
+    enabled = cfg.get("format", {}).get("enabled", True)
+    for override in cfg.get("overrides", []):  # later overrides win
+        if _in_scope(rel, override.get("files", {}), []) and "enabled" in override.get(
+            "format", {}
+        ):
+            enabled = override["format"]["enabled"]
+    return bool(enabled)
 
 
 def run_tombi(cmd: str, config: Path, text: str) -> str:
