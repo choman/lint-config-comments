@@ -18,7 +18,7 @@ includes:
     flatten: true
 
   test:
-    taskfile: .tasks/test_bats.yml
+    taskfile: .tasks/test_python.yml
     dir: "{{ .ROOT_DIR }}"
     optional: true
   #    flatten: true

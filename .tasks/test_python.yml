@@ -7,4 +7,4 @@ tasks:
     run: once
     dir: "{{ .ROOT_DIR }}"
     cmds:
-      - cmd: uvx run pytest
+      - cmd: uv run pytest
