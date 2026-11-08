@@ -58,10 +58,21 @@ bump:
         echo "ERROR: RELEASE_TOKEN is empty. If it's a protected variable, protect '${CI_COMMIT_BRANCH}' (Settings > Repository > Protected branches)." >&2
         exit 1
       fi
-      git ls-remote origin HEAD > /dev/null || {
-        echo "ERROR: RELEASE_TOKEN can't access the repo (expired, wrong scope, or role too low)." >&2
-        exit 1
-      }
+      # git ls-remote would pass for a public repo even with a bad token, so ask the API
+      python3 - <<'PY'
+      import json, os, sys, urllib.request, urllib.error
+      req = urllib.request.Request(
+          f"{os.environ['CI_API_V4_URL']}/personal_access_tokens/self",
+          headers={"PRIVATE-TOKEN": os.environ["RELEASE_TOKEN"]},
+      )
+      try:
+          tok = json.load(urllib.request.urlopen(req, timeout=20))
+      except urllib.error.HTTPError as e:
+          sys.exit(f"ERROR: GitLab rejected RELEASE_TOKEN (HTTP {e.code}): wrong value, revoked or expired.")
+      print(f"RELEASE_TOKEN: {tok['name']!r} scopes={tok['scopes']} expires={tok['expires_at']}")
+      if "write_repository" not in tok["scopes"]:
+          sys.exit("ERROR: RELEASE_TOKEN lacks the write_repository scope; create a new token with it.")
+      PY
     - git checkout -B "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA"
     - |
       if ! grep -q '^\[tool\.commitizen\]' pyproject.toml; then
