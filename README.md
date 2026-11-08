@@ -1,5 +1,28 @@
 # lint-config-comments
 
+[![pipeline][pipeline-badge]][pipeline]
+[![release][release-badge]][releases]
+[![python][python-badge]][pyproject]
+[![pre-commit][pre-commit-badge]][pre-commit]
+[![ruff][ruff-badge]][ruff]
+[![uv][uv-badge]][uv]
+[![conventional commits][cc-badge]][cc]
+
+[pipeline-badge]: https://gitlab.com/choman/lint-config-comments/badges/main/pipeline.svg
+[pipeline]: https://gitlab.com/choman/lint-config-comments/-/pipelines?ref=main
+[release-badge]: https://gitlab.com/choman/lint-config-comments/-/badges/release.svg
+[releases]: https://gitlab.com/choman/lint-config-comments/-/releases
+[python-badge]: https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white
+[pyproject]: https://gitlab.com/choman/lint-config-comments/-/blob/main/pyproject.toml
+[pre-commit-badge]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
+[pre-commit]: https://pre-commit.com
+[ruff-badge]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+[ruff]: https://github.com/astral-sh/ruff
+[uv-badge]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json
+[uv]: https://github.com/astral-sh/uv
+[cc-badge]: https://img.shields.io/badge/Conventional%20Commits-1.0.0-fe5196?logo=conventionalcommits&logoColor=white
+[cc]: https://www.conventionalcommits.org
+
 Pre-commit hooks that keep linter configs readable. Bare rule codes (`MD040`,
 `E501`) are annotated with their names and descriptions. Lists are sorted,
 de-duplicated and their comments aligned.
@@ -107,7 +130,8 @@ option to turn either off. Tombi keeps both and is configurable.
 
 When a `tombi-format` hook formats a config, the hooks pass their output through
 `tombi format` before writing. The result is exactly what Tombi writes, using
-your Tombi config and schemas. Tombi's own `[files]` include/exclude is honored.
+your Tombi config and schemas. Tombi's `[files]` include/exclude and
+`[[overrides]]` with `format.enabled = false` are honored.
 
 `.config/tombi.toml`:
 
@@ -115,13 +139,20 @@ your Tombi config and schemas. Tombi's own `[files]` include/exclude is honored.
 toml-version = "v1.0.0"
 
 [files]
-# pyproject-fmt owns pyproject.toml; never format the lockfile
-exclude = ["pyproject.toml", "uv.lock"]
+exclude = ["uv.lock"]
 
 [format.rules]
 trailing-comment-alignment = true
 trailing-comment-space-width = 2
+
+# pyproject-fmt formats pyproject.toml; Tombi still lints it
+[[overrides]]
+files = { include = ["pyproject.toml"] }
+format = { enabled = false }
 ```
+
+Use an override, not `[files] exclude`, for files another tool formats. An
+exclude also turns off `tombi-lint` for them. The hooks honor both.
 
 `.pre-commit-config.yaml`:
 
@@ -144,11 +175,13 @@ differently from the pinned hook. Set `TOMBI_OFFLINE=true` where
 schemastore.org isn't reachable.
 
 Tombi aligns comments past the `key = [` line as well as the items, so short
-lists get a wide gap. For the hooks' tighter layout, add the hook-owned files to
-Tombi's `exclude`:
+lists get a wide gap. For the hooks' tighter layout, turn off Tombi formatting
+for the hook-owned files:
 
 ```toml
-exclude = ["pyproject.toml", "uv.lock", ".ruff.toml", ".config/rumdl.toml"]
+[[overrides]]
+files = { include = [".ruff.toml", ".config/rumdl.toml"] }
+format = { enabled = false }
 ```
 
 ### toml-sort
