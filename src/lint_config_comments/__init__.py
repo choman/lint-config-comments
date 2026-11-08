@@ -1,3 +1,3 @@
 """Annotate linter configs (rumdl, ruff) with rule names and descriptions."""
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
