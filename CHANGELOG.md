@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Removed
+## [v0.3.1](https://gitlab.com/choman/lint-config-comments/-/releases/v0.3.1) (2026-11-08)
 
-- bump-my-version
+### Fixed
+
+- remove bump-my version
 
 ## [v0.3.0](https://gitlab.com/choman/lint-config-comments/-/releases/v0.3.0) (2026-11-08)
 
