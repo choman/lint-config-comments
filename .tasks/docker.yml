@@ -1,0 +1,166 @@
+# docker.yml — Task definitions for Docker-based functional tests
+#
+# Include in your root Taskfile.yml:
+#   includes:
+#     docker:
+#       taskfile: ./docker.yml
+#       dir: .
+#
+# Usage:
+#   task docker:build          # build all shell images
+#   task docker:test           # build + test all shells
+#   task docker:bash           # build + test bash only
+#   task docker:zsh            # build + test zsh only
+#   task docker:fish           # build + test fish only
+#   task docker:clean          # remove all yadm-hooks-test images
+#   task docker:rebuild        # clean + build all (no cache)
+
+version: "3"
+
+vars:
+  BASE_IMAGE: yadm-hooks-base
+  BASH_IMAGE: yadm-hooks-test-bash
+  ZSH_IMAGE: yadm-hooks-test-zsh
+  FISH_IMAGE: yadm-hooks-test-fish
+  DOCKER_DIR: "{{.ROOT_DIR}}/docker"
+
+tasks:
+  # ---------------------------------------------------------------------------
+  # Build tasks
+  # ---------------------------------------------------------------------------
+
+  build:base:
+    desc: Build the shared base image
+    cmds:
+      - |
+        docker build \
+          -f {{.DOCKER_DIR}}/Dockerfile.base \
+          -t {{.BASE_IMAGE}} \
+          {{.ROOT_DIR}}
+    sources:
+      - docker/Dockerfile.base
+      - yadm-hooks
+      - install.sh
+      - completions/**
+      - pre-commit-config.yml.example
+
+  build:bash:
+    desc: Build the bash test image
+    deps: [build:base]
+    cmds:
+      - |
+        docker build \
+          -f {{.DOCKER_DIR}}/Dockerfile.bash \
+          -t {{.BASH_IMAGE}} \
+          {{.ROOT_DIR}}
+    sources:
+      - docker/Dockerfile.bash
+
+  build:zsh:
+    desc: Build the zsh test image
+    deps: [build:base]
+    cmds:
+      - |
+        docker build \
+          -f {{.DOCKER_DIR}}/Dockerfile.zsh \
+          -t {{.ZSH_IMAGE}} \
+          {{.ROOT_DIR}}
+    sources:
+      - docker/Dockerfile.zsh
+
+  build:fish:
+    desc: Build the fish test image
+    deps: [build:base]
+    cmds:
+      - |
+        docker build \
+          -f {{.DOCKER_DIR}}/Dockerfile.fish \
+          -t {{.FISH_IMAGE}} \
+          {{.ROOT_DIR}}
+    sources:
+      - docker/Dockerfile.fish
+
+  build:
+    desc: Build all shell test images
+    deps: [build:bash, build:zsh, build:fish]
+
+  # ---------------------------------------------------------------------------
+  # Test tasks
+  # ---------------------------------------------------------------------------
+
+  bash:
+    desc: Build and run functional tests in bash container
+    deps: [build:bash]
+    cmds:
+      - docker run --rm {{.BASH_IMAGE}}
+
+  zsh:
+    desc: Build and run functional tests in zsh container
+    deps: [build:zsh]
+    cmds:
+      - docker run --rm {{.ZSH_IMAGE}}
+
+  fish:
+    desc: Build and run functional tests in fish container
+    deps: [build:fish]
+    cmds:
+      - docker run --rm {{.FISH_IMAGE}}
+
+  test:
+    desc: Build and run functional tests for all shells
+    deps: [build]
+    cmds:
+      - |
+        failed=0
+        for image in {{.BASH_IMAGE}} {{.ZSH_IMAGE}} {{.FISH_IMAGE}}; do
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Running: $image"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          docker run --rm "$image" || failed=1
+        done
+        exit $failed
+
+  # ---------------------------------------------------------------------------
+  # Debug — drop into a shell inside the container
+  # ---------------------------------------------------------------------------
+
+  shell:bash:
+    desc: Open a bash shell in the bash test container
+    deps: [build:bash]
+    cmds:
+      - docker run --rm -it --entrypoint /bin/bash {{.BASH_IMAGE}}
+
+  shell:zsh:
+    desc: Open a zsh shell in the zsh test container
+    deps: [build:zsh]
+    cmds:
+      - docker run --rm -it --entrypoint /bin/zsh {{.ZSH_IMAGE}}
+
+  shell:fish:
+    desc: Open a fish shell in the fish test container
+    deps: [build:fish]
+    cmds:
+      - docker run --rm -it --entrypoint /bin/fish {{.FISH_IMAGE}}
+
+  # ---------------------------------------------------------------------------
+  # Maintenance
+  # ---------------------------------------------------------------------------
+
+  clean:
+    desc: Remove all yadm-hooks Docker test images
+    cmds:
+      - docker rmi -f {{.BASE_IMAGE}} {{.BASH_IMAGE}} {{.ZSH_IMAGE}} {{.FISH_IMAGE}} 2>/dev/null || true
+
+  rebuild:
+    desc: Clean and rebuild all images (no cache)
+    cmds:
+      - task: clean
+      - |
+        docker build --no-cache \
+          -f {{.DOCKER_DIR}}/Dockerfile.base \
+          -t {{.BASE_IMAGE}} \
+          {{.ROOT_DIR}}
+      - task: build:bash
+      - task: build:zsh
+      - task: build:fish

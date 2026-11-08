@@ -1,0 +1,83 @@
+---
+version: "3"
+
+tasks:
+  upgrade:uv:
+    desc: Upgrade uv
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install --upgrade uv
+
+  upgrade:pip:
+    desc: Upgrade pip
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install --upgrade pip
+
+  upgrade:uv-pip:
+    desc: Upgrade uv and pip
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install --upgrade pip # uv pip
+
+  install:
+    desc: Install all pip requirements
+    aliases:
+      - lock
+      - sync
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv lock
+      - cmd: uv sync
+
+  upgrade:
+    desc: Upgrade all project dependencies.
+    internal: true
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - task: upgrade:uv-pip
+      - cmd: uv lock --upgrade
+      - task: install
+
+  tree:
+    desc: list direct dependencies
+    aliases:
+      - list
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv tree --depth 1
+
+  tree:all:
+    desc: list all dependencies
+    aliases:
+      - list:all
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv tree
+
+  outdated:
+    desc: show direct outdated dependencies
+    aliases:
+      - show
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv tree --outdated --depth 1
+
+  outdated:all:
+    desc: show all outdated dependencies
+    aliases:
+      - show:all
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv tree --outdated

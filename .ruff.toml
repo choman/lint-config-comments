@@ -1,0 +1,10 @@
+cache-dir = ".cache/ruff"
+
+[lint]
+# ruff rules:
+#   I    isort
+#   PTH  flake8-use-pathlib
+extend-select = [
+    "I",           # isort
+    "PTH",         # flake8-use-pathlib
+]

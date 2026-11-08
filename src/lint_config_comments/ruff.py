@@ -14,16 +14,31 @@ from pathlib import Path
 import tomlkit
 
 from .common import (
-    Items, add_rule_blocks, align_comments, has_table, natural_key,
-    resolve_configs, strip_rule_blocks, write_result,
+    Items,
+    add_rule_blocks,
+    detect_indent,
+    format_arrays,
+    has_table,
+    remove_orphans,
+    resolve_configs,
+    sort_key,
+    strip_rule_blocks,
+    write_result,
 )
+from .style import TOMBI_CMD, resolve_style, run_tombi, toml_sort_hint
 
 DEFAULT_CMD = "ruff" if shutil.which("ruff") else "uvx ruff"
 CONFIG_NAMES = [".ruff.toml", "ruff.toml", ".config/ruff.toml", "pyproject.toml"]
 LIST_KEYS = {
-    "select", "extend-select", "ignore", "extend-ignore",
-    "fixable", "extend-fixable", "unfixable",
-    "extend-safe-fixes", "extend-unsafe-fixes",
+    "select",
+    "extend-select",
+    "ignore",
+    "extend-ignore",
+    "fixable",
+    "extend-fixable",
+    "unfixable",
+    "extend-safe-fixes",
+    "extend-unsafe-fixes",
 }
 TABLE_KEYS = {"per-file-ignores", "extend-per-file-ignores"}
 MARKER = "# ruff rules:"
@@ -36,14 +51,26 @@ def accept(path: Path) -> bool:
 class RuffRules:
     def __init__(self, cmd: str = DEFAULT_CMD):
         base = shlex.split(cmd)
-        rules = json.loads(subprocess.check_output([*base, "rule", "--all", "--output-format", "json"], text=True))
-        linters = json.loads(subprocess.check_output([*base, "linter", "--output-format", "json"], text=True))
+        rules = json.loads(
+            subprocess.check_output(
+                [*base, "rule", "--all", "--output-format", "json"], text=True
+            )
+        )
+        linters = json.loads(
+            subprocess.check_output(
+                [*base, "linter", "--output-format", "json"], text=True
+            )
+        )
 
-        self.rules = {r["code"]: (r["name"], r.get("summary", "")) for r in rules if r.get("code")}
+        self.rules = {
+            r["code"]: (r["name"], r.get("summary", "")) for r in rules if r.get("code")
+        }
         self.prefixes = {}
         for lint in linters:
             for cat in lint.get("categories") or []:
-                self.prefixes[lint["prefix"] + cat["prefix"]] = f"{lint['name']} {cat['name']}"
+                self.prefixes[lint["prefix"] + cat["prefix"]] = (
+                    f"{lint['name']} {cat['name']}"
+                )
             if lint["prefix"]:
                 self.prefixes[lint["prefix"]] = lint["name"]
 
@@ -57,7 +84,9 @@ class RuffRules:
             return self.prefixes[sel], ""
         matches = [c for c in self.rules if c.startswith(sel)]
         if matches:
-            owner = max((p for p in self.prefixes if sel.startswith(p)), key=len, default=None)
+            owner = max(
+                (p for p in self.prefixes if sel.startswith(p)), key=len, default=None
+            )
             return f"{self.prefixes.get(owner, 'prefix')} ({len(matches)} rules)", ""
         return None
 
@@ -65,63 +94,145 @@ class RuffRules:
         return (sel, *self.describe(sel))
 
 
-def rewrite(arr, rules: RuffRules, seen: set):
-    new = tomlkit.array().multiline(True)
-    for sel in sorted({str(s) for s in arr}, key=natural_key):
+def rewrite(arr, rules: RuffRules, seen: set, indent: str, sort: str = "id"):
+    new = tomlkit.array()
+    for sel in sorted({str(s) for s in arr}, key=lambda v: sort_key(sort, v, v)):
         info = rules.describe(sel)
         if info:
             seen.add(sel)
-            new.add_line(sel, comment=info[0])
+            new.add_line(sel, comment=info[0], indent=indent)
         else:
             print(f"warning: unknown selector {sel!r}, left as-is", file=sys.stderr)
-            new.add_line(sel)
+            new.add_line(sel, indent=indent)
+    if len(new):
+        new.add_line(indent="")  # closing bracket on its own line
     return new
 
 
 def lint_tables(doc, is_pyproject: bool):
-    """Yield (dotted section, table) for every table that may hold lint settings."""
+    """Yield (path tuple, table) for every table that may hold lint settings."""
     root = doc.get("tool", {}).get("ruff") if is_pyproject else doc
     if root is None:
         return
-    base = "tool.ruff" if is_pyproject else ""
+    base = ("tool", "ruff") if is_pyproject else ()
     yield base, root  # legacy top-level settings
     if "lint" in root:
-        yield f"{base}.lint".lstrip("."), root["lint"]
+        yield (*base, "lint"), root["lint"]
 
 
-def process(config: Path, rules: RuffRules, describe: bool, dry_run: bool) -> bool:
+def process(
+    config: Path,
+    rules: RuffRules,
+    describe: bool,
+    align: bool | None,
+    sort: str | None,
+    formatter: str,
+    tombi_cmd: str,
+    dry_run: bool,
+) -> bool:
     original = config.read_text()
-    doc = tomlkit.parse(strip_rule_blocks(original, {MARKER}))
+    style = resolve_style(config, sort, align, formatter, tombi_cmd)
+    indent = style.indent or detect_indent(original)
+    cleaned = remove_orphans(
+        strip_rule_blocks(original, {MARKER}), lambda c: rules.describe(c) is not None
+    )
+    doc = tomlkit.parse(cleaned)
     items: Items = {}
 
     for section, table in lint_tables(doc, config.name == "pyproject.toml"):
         for key in LIST_KEYS & set(table):
-            table[key] = rewrite(table[key], rules, items.setdefault((section, key), set()))
+            table[key] = rewrite(
+                table[key],
+                rules,
+                items.setdefault((*section, key), set()),
+                indent,
+                style.sort_mode,
+            )
         for key in TABLE_KEYS & set(table):
-            sub = f"{section}.{key}".lstrip(".")
             for pattern in list(table[key]):
-                table[key][pattern] = rewrite(table[key][pattern], rules, items.setdefault((sub, pattern), set()))
+                table[key][pattern] = rewrite(
+                    table[key][pattern],
+                    rules,
+                    items.setdefault((*section, key, pattern), set()),
+                    indent,
+                    style.sort_mode,
+                )
 
-    out = align_comments(tomlkit.dumps(doc))
+    out = tomlkit.dumps(doc)
+    out = format_arrays(out, style)
     if describe:
-        out = add_rule_blocks(out, items, rules.row, MARKER)
-    return write_result(config, original, out, dry_run)
+        out = add_rule_blocks(out, items, rules.row, MARKER, style.block_prefix)
+    if style.tombi:
+        out = run_tombi(style.tombi, config, out)
+    changed = write_result(config, original, out, dry_run)
+    if changed and style.source == "toml-sort":
+        print(toml_sort_hint(config), file=sys.stderr)
+    return changed
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("configs", nargs="*", type=Path, help=f"config files (default: search for {', '.join(CONFIG_NAMES)})")
-    ap.add_argument("--ruff", default=DEFAULT_CMD, help=f"ruff command (default: {DEFAULT_CMD!r})")
-    ap.add_argument("-d", "--describe", action=argparse.BooleanOptionalAction, default=True,
-                    help="comment block above each list describing its rules (default: on)")
-    ap.add_argument("-n", "--dry-run", action="store_true", help="print result instead of writing")
+    ap.add_argument(
+        "configs",
+        nargs="*",
+        type=Path,
+        help=f"config files (default: search for {', '.join(CONFIG_NAMES)})",
+    )
+    ap.add_argument(
+        "--ruff", default=DEFAULT_CMD, help=f"ruff command (default: {DEFAULT_CMD!r})"
+    )
+    ap.add_argument(
+        "-d",
+        "--describe",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="comment block above each list describing its rules (default: on)",
+    )
+    ap.add_argument(
+        "--align",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="line up trailing comments (default: on, off when toml-sort formats the file)",
+    )
+    ap.add_argument(
+        "--sort",
+        choices=["id", "value"],
+        default=None,
+        help="id: by rule ID; value: plain string order (default: id, or value when toml-sort --sort-inline-arrays formats the file)",
+    )
+    ap.add_argument(
+        "--formatter",
+        choices=["auto", "tombi", "toml-sort", "none"],
+        default="auto",
+        help="TOML formatter to stay compatible with (default: auto-detect from .pre-commit-config.yaml)",
+    )
+    ap.add_argument(
+        "--tombi",
+        default=TOMBI_CMD,
+        help=f"tombi command (default: {TOMBI_CMD!r})",
+    )
+    ap.add_argument(
+        "-n", "--dry-run", action="store_true", help="print result instead of writing"
+    )
     args = ap.parse_args(argv)
 
     configs = resolve_configs(args.configs, CONFIG_NAMES, accept)
     if not configs:
         return 0
     rules = RuffRules(args.ruff)
-    changed = [process(c, rules, args.describe, args.dry_run) for c in configs]
+    changed = [
+        process(
+            c,
+            rules,
+            args.describe,
+            args.align,
+            args.sort,
+            args.formatter,
+            args.tombi,
+            args.dry_run,
+        )
+        for c in configs
+    ]
     return 1 if any(changed) else 0
 
 

@@ -1,0 +1,52 @@
+---
+version: "3"
+
+tasks:
+  autoupdate:
+    desc: Autoupdate all prek hooks
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: prek autoupdate
+
+  clean:
+    desc: Clean up prek cache
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: prek cache clean
+      - cmd: prek cache gc
+
+  init:
+    desc: Install and run prek hooks
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: prek install --install-hooks
+      - cmd: prek install --hook-type commit-msg
+      - task: lint
+
+  lint:
+    desc: "lint project; limit to hooks with: task project:lint -- <hook> [<hook>...]"
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: prek run -a {{ .CLI_ARGS }}
+
+  list:
+    desc: list hooks (linter ids)
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: prek list
+
+  status:
+    desc: prek cache status
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: prek cache status

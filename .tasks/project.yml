@@ -1,0 +1,54 @@
+---
+version: "3"
+
+includes:
+  pip:
+    taskfile: pip.yml
+    dir: "{{ .ROOT_DIR }}"
+
+  prek:
+    taskfile: prek.yml
+    dir: "{{ .ROOT_DIR }}"
+
+  uv:
+    taskfile: uv.yml
+    dir: "{{ .ROOT_DIR }}"
+
+tasks:
+  lint:
+    desc: Lint project
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - task: prek:lint
+
+  init:
+    desc: Initialize the project.
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      #      - task: project-init:submodules:init
+      - task: prek:init
+      - task: pip:install
+      - task: lint
+
+  upgrade:
+    desc: Upgrade all project dependencies.
+    aliases: [update]
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - task: prek:autoupdate
+      #      - task: typos-fix
+      - task: pip:upgrade
+      - task: prek:init
+
+  clean:
+    desc: Cleanup project
+    aliases: [clean]
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - task: prek:clean
+      #
+#  project:destroy:
+#    desc: Start over
+#    cmds:
+#      - task: virtualenv:remove

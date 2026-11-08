@@ -1,0 +1,11 @@
+[global]
+cache-dir = ".cache/rumdl"
+
+[per-file-ignores]
+# rumdl rules:
+#   MD040  fenced-code-language     Code blocks should have a language specified
+#   MD057  existing-relative-links  Relative links should point to existing files
+"README.md" = [
+    "fenced-code-language",     # MD040
+    "existing-relative-links",  # MD057
+]

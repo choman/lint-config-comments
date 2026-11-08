@@ -1,0 +1,64 @@
+---
+version: "3"
+
+includes:
+  project-setup:
+    taskfile: .tasks/project-setup.yml
+    dir: "{{ .ROOT_DIR }}"
+
+  project:
+    taskfile: .tasks/project.yml
+    dir: "{{ .ROOT_DIR }}"
+    optional: true
+
+  utils:
+    taskfile: .tasks/utils.yml
+    dir: "{{ .ROOT_DIR }}"
+    optional: true
+    flatten: true
+
+  test:
+    taskfile: .tasks/test_bats.yml
+    dir: "{{ .ROOT_DIR }}"
+    optional: true
+  #    flatten: true
+
+  docker:
+    taskfile: .tasks/docker.yml
+    dir: "{{ .ROOT_DIR }}"
+    optional: true
+
+  prek:
+    taskfile: .tasks/prek.yml
+    dir: "{{ .ROOT_DIR }}"
+    optional: true
+
+  uv:
+    taskfile: .tasks/uv.yml
+    dir: "{{ .ROOT_DIR }}"
+    optional: true
+
+tasks:
+  default:
+    desc: initial summary
+    summary: |
+      This is the
+    cmds:
+      - cmd: task --list
+
+  project:setup:
+    desc: Setup initial dependencies
+    aliases: [setup]
+    run: once
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - task: project-setup:direnv:allow
+      - task: project-setup:submodules:guard
+
+  venv:clobber:
+    desc: Setup initial dependencies
+    aliases: [clobber]
+    run: once
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - cmd: rm -rf .direnv .venv

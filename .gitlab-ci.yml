@@ -1,0 +1,61 @@
+# .gitlab-ci.yml — CI pipeline for ssh-keyaudit
+#
+# Stages:
+#   lint   — static shell checks (shellcheck)
+#   test   — bats test suites
+#
+# Requires no external services. Runs on any Linux runner.
+
+stages:
+  - lint
+  - test
+
+default:
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq shellcheck bats
+
+# ─── Lint ─────────────────────────────────────────────────────────────────────
+
+shellcheck:
+  stage: lint
+  script:
+    - shellcheck ssh-keyaudit.sh
+    - shellcheck install.sh
+    - shellcheck completions/ssh-keyaudit.bash
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ─── Test ─────────────────────────────────────────────────────────────────────
+
+test:audit:
+  stage: test
+  script:
+    - bats --tap tests/bats/ssh-keyaudit.bats
+  artifacts:
+    when: always
+    reports:
+      junit: tap-audit.xml
+    expire_in: 7 days
+  after_script:
+    - bats --tap tests/bats/ssh-keyaudit.bats 2>/dev/null | tap-to-junit > tap-audit.xml || true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+test:install:
+  stage: test
+  script:
+    - bats --tap tests/bats/install.bats
+  artifacts:
+    when: always
+    reports:
+      junit: tap-install.xml
+    expire_in: 7 days
+  after_script:
+    - bats --tap tests/bats/install.bats 2>/dev/null | tap-to-junit > tap-install.xml || true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

@@ -1,0 +1,43 @@
+---
+version: "3"
+
+vars:
+  HAS_GITMODULES:
+    sh: test -f .gitmodules && echo 'true' || echo 'false'
+#   IS_SILENT: ## '{{if eq .HAS_MODULES "true"}}false{{else}}true{{end}}'
+#      sh: test -f .gitmodules && echo 'false' || echo 'true'
+
+tasks:
+  direnv:allow:
+    desc: initial direnv allow
+    internal: true
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: direnv allow
+
+  submodules:guard:
+    internal: true
+    desc: submodule gatekeeper
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: echo "Skipping submodules, .gitmodules not found."
+        if: '{{ne .HAS_GITMODULES "true"}}'
+      - task: submodules:init
+        if: '{{eq .HAS_GITMODULES "true"}}'
+
+  submodules:init:
+    internal: true
+    desc: initialize git submodules
+    dir: "{{ .ROOT_DIR }}"
+    run: once
+    cmds:
+      - cmd: git submodule init
+      - task: submodules:update
+
+  submodules:update:
+    desc: include submodules
+    internal: true
+    dir: "{{ .ROOT_DIR }}"
+    run: once
+    cmds:
+      - cmd: git submodule update

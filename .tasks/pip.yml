@@ -1,0 +1,64 @@
+---
+version: "3"
+
+tasks:
+  install:uv:
+    desc: Install uv
+    internal: true
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: echo "disabled - pip install uv"
+      ##- cmd: pip install uv
+
+  upgrade:uv:
+    desc: Upgrade uv
+    internal: true
+    run: once
+    deps:
+      - task: install:uv
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install --upgrade uv
+
+  upgrade:pip:
+    desc: Upgrade pip
+    internal: true
+    run: once
+    deps:
+      - task: install:uv
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install --upgrade pip
+
+  upgrade:uv-pip:
+    desc: Upgrade uv and pip
+    internal: true
+    run: once
+    deps:
+      - task: install:uv
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install --upgrade pip # uv pip
+
+  install:
+    desc: Install all pip requirements
+    internal: true
+    run: once
+    #    deps:
+    #      - task: install:uv
+    #      - task: upgrade:uv-pip
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: uv pip install -q -r requirements.txt
+
+  upgrade:
+    desc: Upgrade all project dependencies.
+    internal: true
+    deps:
+      - task: install:uv
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - task: upgrade:uv-pip
+      - cmd: pur
+      - task: install

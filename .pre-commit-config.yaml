@@ -1,0 +1,184 @@
+---
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+        args: [--unsafe]
+      - id: debug-statements
+      - id: detect-private-key
+        exclude: tests/.*\.bats
+      ## - id: double-quote-string-fixer
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+      - id: name-tests-test
+      - id: no-commit-to-branch
+        args: [--branch, staging, --branch, main, --branch, develop]
+      - id: pretty-format-json
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+
+  - repo:
+      https://github.com/astral-sh/ruff-pre-commit
+      # This tool replaces
+      # - black
+      # - flake8
+      # - isort
+      # - pyupgrade
+    rev: v0.17.4
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+      # Run the formatter.
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: \.(css|less|scss|json|js|jsx|md|yml|yaml)$
+        args: ["--write"]
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.52.0
+    hooks:
+      # Hook 1: The "Normal" Code Scanner
+      - id: typos
+        name: typos (code)
+        stages: [pre-commit]
+        pass_filenames: true
+
+      # Hook 2: The "Message" Scanner
+      - id: typos
+        alias: typos-msg
+        name: typos (commit-msg)
+        stages: [commit-msg]
+        args: ["--no-ignore", ".git/COMMIT_EDITMSG"]
+        always_run: true
+        pass_filenames: false
+
+  #########################################################
+  # Shell linting
+  #########################################################
+  ##- repo: https://github.com/pecigonzalo/pre-commit-shfmt
+  ##  rev: v2.2.0
+  ##  hooks:
+  ##    - id: shell-fmt
+  ##      args:
+  ##        - "-w"
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.14.1-1
+    hooks:
+      # Choose one of:
+      - id: shfmt # prebuilt upstream executable
+        args:
+          - -i=3
+          - -w
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.11.0
+    hooks:
+      - id: shellcheck
+
+  #######################################################
+  # security
+  #######################################################
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.10.0
+    hooks:
+      - id: betterleaks
+
+  #######################################################
+  # toml files
+  #######################################################
+  - repo: local
+    hooks:
+      - id: ruff-config-comments
+        name: ruff config comments
+        entry: uv run ruff-config-comments
+        language: system
+        files: (^|/)(\.?ruff\.toml|\.config/ruff\.toml|pyproject\.toml)$
+      - id: rumdl-config-comments
+        name: rumdl config comments
+        entry: uv run rumdl-config-comments
+        language: system
+        files: (^|/)(\.?rumdl\.toml|\.config/rumdl\.toml)$
+
+  - repo: https://github.com/tombi-toml/tombi-pre-commit
+    rev: v1.10.0
+    hooks:
+      - id: tombi-format
+        args:
+          - --offline
+      - id: tombi-lint
+        args:
+          - --offline
+
+  ##  - repo: https://github.com/pappasam/toml-sort
+  ##    rev: v0.25.0 # placeholder, replaced by autoupdate below
+  ##    hooks:
+  ##      - id: toml-sort-fix
+  ##        #files: ^pyproject\.toml$
+  ##        files: \.toml$
+  ##        args:
+  ##          - --in-place
+  ##          - --sort-inline-arrays
+  ##          - --trailing-comma-inline-array
+  ##          - --no-sort-tables
+  ##          - --spaces-indent-inline-array=4
+
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: v2.30.6
+    hooks:
+      - id: pyproject-fmt
+        args:
+          - --indent=4
+
+  #######################################################
+  # toml files
+  #######################################################
+
+  #######################################################
+  # markdown lint
+  #######################################################
+  # Dogfood the working tree. Other repos use:
+  #   - repo: https://gitlab.com/choman/lint-config-comments
+  #     rev: v0.2.0
+  - repo: https://github.com/rvben/rumdl-pre-commit
+    rev: v0.3.2
+    hooks:
+      - id: rumdl # Lint only; add args [--fix] to auto-fix
+      - id: rumdl-fmt # Pure format, exits 0 on violations
+
+  #######################################################
+  # commit message lint
+  #######################################################
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.19.3 # Replace with latest tag
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+##  - repo: local
+##    hooks:
+##      - id: shellcheck
+##        name: shellcheck
+##        entry: shellcheck
+##        language: system
+##        types:
+##          - file
+##          - shell
+##        exclude_types:
+##          - zsh

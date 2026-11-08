@@ -1,0 +1,19 @@
+---
+version: "3"
+
+tasks:
+  bats:init:
+    desc: ensure bats (via mise)
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    cmds:
+      - cmd: mise use bats
+
+  bats:all:
+    desc: run all tests
+    run: once
+    dir: "{{ .ROOT_DIR }}"
+    precondition:
+      - task: bats:init
+    cmds:
+      - cmd: bats tests/bats -T
