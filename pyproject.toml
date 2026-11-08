@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "lint-config-comments"
-version = "0.1.1"
+version = "0.1.0"
 description = "Annotate rumdl and ruff configs with rule names and descriptions"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -26,3 +26,6 @@ optional-dependencies.ruff = [ "ruff" ]
 optional-dependencies.rumdl = [ "rumdl" ]
 scripts.ruff-config-comments = "lint_config_comments.ruff:main"
 scripts.rumdl-config-comments = "lint_config_comments.rumdl:main"
+
+[tool.commitizen]
+change_type_map = { feat = "Added", fix = "Fixed", refactor = "Changed", perf = "Changed" }
