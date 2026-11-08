@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - support for tombi
 - formatting rules fixed
+- setup release
 
 ## [0.1.0] - 2026-11-o7
 
