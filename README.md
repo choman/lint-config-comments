@@ -1,6 +1,8 @@
 # lint-config-comments
 
 [![pipeline][pipeline-badge]][pipeline]
+[![coverage][coverage-badge]][pipeline]
+[![pytest][pytest-badge]][pytest]
 [![release][release-badge]][releases]
 [![python][python-badge]][pyproject]
 [![pre-commit][pre-commit-badge]][pre-commit]
@@ -10,6 +12,9 @@
 
 [pipeline-badge]: https://gitlab.com/choman/lint-config-comments/badges/main/pipeline.svg
 [pipeline]: https://gitlab.com/choman/lint-config-comments/-/pipelines?ref=main
+[coverage-badge]: https://gitlab.com/choman/lint-config-comments/badges/main/coverage.svg
+[pytest-badge]: https://img.shields.io/badge/tested%20with-pytest-0A9EDC?logo=pytest&logoColor=white
+[pytest]: https://docs.pytest.org
 [release-badge]: https://gitlab.com/choman/lint-config-comments/-/badges/release.svg
 [releases]: https://gitlab.com/choman/lint-config-comments/-/releases
 [python-badge]: https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white

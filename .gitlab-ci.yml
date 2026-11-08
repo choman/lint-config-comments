@@ -1,6 +1,6 @@
 # .gitlab-ci.yml — lint-config-comments
 #
-# Push to any branch:             lint
+# Push to any branch:             lint, test
 # Push to main (not a bump):      bump   -> cz bump, commit + tag pushed back
 # Tag vX.Y.Z (from bump):         release (GitLab release with CHANGELOG notes)
 #
@@ -28,13 +28,32 @@ default:
 lint:
   stage: lint
   script:
-    - uvx ruff check src
-    - uvx ruff format --check src
+    - uvx ruff check src tests
+    - uvx ruff format --check src tests
     # smoke test: both hooks run cleanly against this repo's own configs
     - uv run --frozen ruff-config-comments --formatter none -n .ruff.toml > /dev/null
     - uv run --frozen rumdl-config-comments --formatter none -n .config/rumdl.toml > /dev/null
   rules:
     - if: $CI_COMMIT_BRANCH # every branch push (no duplicate MR pipelines)
+
+test:
+  stage: lint
+  variables:
+    TOMBI_OFFLINE: "true" # don't fetch schemas from schemastore.org
+  script:
+    - >-
+      uv run --frozen pytest --junitxml=report.xml
+      --cov=lint_config_comments --cov-report=term --cov-report=xml:coverage.xml
+  coverage: '/TOTAL.*? (\d+(?:\.\d+)?)%/' # feeds the coverage badge
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml # test results in the pipeline and MR
+      coverage_report: # line coverage shown in MR diffs
+        coverage_format: cobertura
+        path: coverage.xml
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 # ─── Release ──────────────────────────────────────────────────────────────────
 
