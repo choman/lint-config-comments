@@ -42,6 +42,7 @@ ini_options.addopts = "-ra"
 ini_options.markers = [
     "integration: runs the real rumdl/ruff/tombi/toml-sort (skipped if not installed)",
 ]
+ini_options.cache_dir = ".cache/pytest"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
