@@ -38,7 +38,7 @@ tasks:
     cmds:
       - task: prek:autoupdate
       #      - task: typos-fix
-      - task: pip:upgrade
+      - task: uv:upgrade
       - task: prek:init
 
   clean:

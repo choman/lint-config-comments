@@ -117,7 +117,7 @@ repos:
         files: (^|/)(\.?rumdl\.toml|\.config/rumdl\.toml)$
 
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v1.10.0
+    rev: v1.11.0
     hooks:
       - id: tombi-format
         args:
