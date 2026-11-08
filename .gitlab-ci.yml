@@ -1,6 +1,6 @@
 # .gitlab-ci.yml — lint-config-comments
 #
-# Merge request / push to main:   lint
+# Push to any branch:             lint
 # Push to main (not a bump):      bump   -> cz bump, commit + tag pushed back
 # Tag vX.Y.Z (from bump):         release (GitLab release with CHANGELOG notes)
 #
@@ -34,8 +34,7 @@ lint:
     - uv run --frozen ruff-config-comments --formatter none -n .ruff.toml > /dev/null
     - uv run --frozen rumdl-config-comments --formatter none -n .config/rumdl.toml > /dev/null
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH # every branch push (no duplicate MR pipelines)
 
 # ─── Release ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +54,15 @@ bump:
     - git config user.email "${GITLAB_USER_EMAIL}"
     - git remote set-url origin "https://oauth2:${RELEASE_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
     - git checkout -B "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA"
+    - |
+      if ! grep -q '^\[tool\.commitizen\]' pyproject.toml; then
+        echo "ERROR: no [tool.commitizen] section in pyproject.toml on ${CI_COMMIT_BRANCH}." >&2
+        exit 1
+      fi
+      if ! git describe --tags --abbrev=0 --match 'v[0-9]*' > /dev/null 2>&1; then
+        echo "ERROR: no v* tag yet. Tag the current release once by hand (git tag -a v0.1.0 -m v0.1.0 && git push --tags)." >&2
+        exit 1
+      fi
     - |
       rc=0
       uvx --from "$COMMITIZEN" cz bump --yes || rc=$?
