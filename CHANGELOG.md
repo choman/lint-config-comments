@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.4.0](https://gitlab.com/choman/lint-config-comments/-/releases/v0.4.0) (2026-11-08)
+
+### Added
+
+- pytest
+- add pytest
+- ad pytests
+
+### Fixed
+
+- pytest in pipeline
+- add UP
+
 ## [v0.3.1](https://gitlab.com/choman/lint-config-comments/-/releases/v0.3.1) (2026-11-08)
 
 ### Fixed
