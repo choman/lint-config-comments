@@ -4,7 +4,9 @@ cache-dir = ".cache/ruff"
 # ruff rules:
 #   I    isort
 #   PTH  flake8-use-pathlib
+#   UP   pyupgrade
 extend-select = [
     "I",           # isort
     "PTH",         # flake8-use-pathlib
+    "UP",          # pyupgrade
 ]
