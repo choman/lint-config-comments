@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.4.2](https://gitlab.com/choman/lint-config-comments/-/releases/v0.4.2) (2026-11-09)
+
+### Fixed
+
+- double dog food comment
+
 ## [v0.4.1](https://gitlab.com/choman/lint-config-comments/-/releases/v0.4.1) (2026-11-08)
 
 ### Fixed
