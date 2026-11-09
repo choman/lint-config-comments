@@ -104,6 +104,9 @@ repos:
   #######################################################
   # toml files
   #######################################################
+  # Dogfood the working tree. Other repos use:
+  #   - repo: https://gitlab.com/choman/lint-config-comments
+  #     rev: v0.2.0
   - repo: local
     hooks:
       - id: ruff-config-comments
